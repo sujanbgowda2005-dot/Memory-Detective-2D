@@ -1,119 +1,333 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#090d18">
-  <title>Memory Detective — Case Files</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800;900&family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0">
+
+  <title>Memory Detective 2D</title>
+
   <link rel="stylesheet" href="style.css">
   <script src="script.js" defer></script>
 </head>
+
 <body>
-  <div class="ambient ambient-one"></div><div class="ambient ambient-two"></div>
-  <div class="app-shell">
-    <header class="topbar">
-      <a class="brand" href="#" aria-label="Memory Detective home">
-        <span class="brand-mark">MD<span>✦</span></span>
-        <span><b>MEMORY DETECTIVE</b><small>THE CHANGING CRIME SCENE</small></span>
-      </a>
-      <div class="topbar-right">
-        <div class="rank-chip"><span class="rank-dot"></span><span id="headerRank">ROOKIE DETECTIVE</span></div>
-        <button id="soundBtn" class="icon-button" aria-label="Toggle sound">🔊 <span>Sound</span></button>
+<div class="game-shell">
+
+  <!-- HEADER -->
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-icon">🔍</div>
+      <div>
+        <h1>MEMORY DETECTIVE</h1>
+        <p>THE ULTIMATE MEMORY CHALLENGE</p>
       </div>
-    </header>
+    </div>
 
-    <main>
-      <section id="menuScreen" class="screen active">
-        <div class="hero-grid">
-          <div class="hero-copy">
-            <div class="kicker"><span class="kicker-line"></span> CLASSIFIED CASE DIVISION</div>
-            <h1>EVERY DETAIL<br>IS <em>EVIDENCE.</em></h1>
-            <p class="hero-description">A scene can change in a second. Your memory is the only witness. Study the room, spot the anomalies, and solve the case.</p>
-            <div class="hero-stats">
-              <div><b>05</b><span>CASE FILES</span></div>
-              <div><b>03</b><span>DIFFICULTY MODES</span></div>
-              <div><b>∞</b><span>REPLAY VALUE</span></div>
+    <button id="soundBtn" class="icon-btn">
+      🔊 Sound On
+    </button>
+  </header>
+
+  <main>
+
+    <!-- MAIN MENU -->
+    <section id="menuScreen" class="screen active">
+      <div class="menu-content">
+
+        <div class="detective-icon">🕵️</div>
+
+        <p class="eyebrow">WELCOME, DETECTIVE</p>
+
+        <h2>MEMORY DETECTIVE 2D</h2>
+
+        <p class="description">
+          Study the crime scene, remember the objects,
+          and find what changed before time runs out.
+        </p>
+
+        <h3>SELECT YOUR DIFFICULTY</h3>
+
+        <div class="difficulty-buttons">
+          <button class="difficulty active"
+                  data-level="easy">
+            🟢 Easy
+          </button>
+
+          <button class="difficulty"
+                  data-level="medium">
+            🟡 Medium
+          </button>
+
+          <button class="difficulty"
+                  data-level="hard">
+            🔴 Hard
+          </button>
+        </div>
+
+        <p id="difficultyInfo" class="difficulty-info">
+          5 Objects • 25s Memory • 35s Investigation
+        </p>
+
+        <!-- NEW DIFFICULTY DASHBOARD -->
+        <div class="dashboard">
+          <div class="dashboard-heading">
+            <h3>🏆 DIFFICULTY DASHBOARD</h3>
+            <p>
+              Select a difficulty to view its records.
+            </p>
+          </div>
+
+          <div class="score-cards">
+            <button class="score-card selected"
+                    data-score-level="easy">
+              <span>🟢 EASY</span>
+              <strong id="easyBest">0</strong>
+              <small>Highest Score</small>
+            </button>
+
+            <button class="score-card"
+                    data-score-level="medium">
+              <span>🟡 MEDIUM</span>
+              <strong id="mediumBest">0</strong>
+              <small>Highest Score</small>
+            </button>
+
+            <button class="score-card"
+                    data-score-level="hard">
+              <span>🔴 HARD</span>
+              <strong id="hardBest">0</strong>
+              <small>Highest Score</small>
+            </button>
+          </div>
+
+          <div class="selected-dashboard">
+            <h3 id="dashboardTitle">
+              🟢 EASY MODE RECORDS
+            </h3>
+
+            <div class="dashboard-stats">
+              <div>
+                <span>BEST SCORE</span>
+                <strong id="dashboardBest">0</strong>
+              </div>
+
+              <div>
+                <span>GAMES PLAYED</span>
+                <strong id="dashboardGames">0</strong>
+              </div>
+
+              <div>
+                <span>LAST SCORE</span>
+                <strong id="dashboardLast">0</strong>
+              </div>
             </div>
-          </div>
-          <div class="case-card">
-            <div class="case-card-top"><span class="live-tag"><i></i> NEW ASSIGNMENT</span><span class="case-code">MD-2049</span></div>
-            <div class="case-art"><div class="art-ring"></div><div class="art-lens">⌕</div><span class="art-stamp">EVIDENCE<br>UNIT</span></div>
-            <div class="case-card-body">
-              <div class="case-label">YOUR FIRST ASSIGNMENT</div>
-              <h2>The Vanishing Evidence</h2>
-              <p>Someone has tampered with a secured location. Find what doesn't belong — or what no longer does.</p>
-              <div class="case-meta"><span>◈ MEMORY TEST</span><span>◷ 3–5 MIN</span></div>
-            </div>
+
+            <p id="dashboardMessage">
+              No Easy games completed yet.
+            </p>
           </div>
         </div>
 
-        <div class="start-panel">
-          <div class="section-heading"><div><span class="section-kicker">01 / PREPARE</span><h2>Choose your assignment level</h2></div><span class="muted-label">YOUR RECORD: <b id="bestScore">0</b> PTS</span></div>
-          <div class="difficulty-grid">
-            <button class="difficulty active" data-level="easy"><span class="difficulty-icon">🕵️</span><span class="difficulty-name">CADET</span><small>1 anomaly · More time</small><span class="difficulty-tag">EASY</span></button>
-            <button class="difficulty" data-level="medium"><span class="difficulty-icon">🔎</span><span class="difficulty-name">INVESTIGATOR</span><small>2 anomalies · Less time</small><span class="difficulty-tag">MEDIUM</span></button>
-            <button class="difficulty" data-level="hard"><span class="difficulty-icon">🎖️</span><span class="difficulty-name">ELITE</span><small>3 anomalies · High pressure</small><span class="difficulty-tag">HARD</span></button>
+        <button id="startBtn" class="primary-btn">
+          ▶ START INVESTIGATION
+        </button>
+
+        <div class="instructions">
+          <h3>📖 HOW TO PLAY</h3>
+          <p>
+            1. Select Easy, Medium, or Hard.
+          </p>
+          <p>
+            2. Memorize the objects and their positions.
+          </p>
+          <p>
+            3. Wait for the scene to change.
+          </p>
+          <p>
+            4. Click the changed object's position.
+          </p>
+          <p>
+            5. Solve five mysteries with three lives.
+          </p>
+          <p>
+            6. After each answer, see the actual
+            correct answer.
+          </p>
+          <p>
+            7. Your highest score is saved separately
+            for each difficulty.
+          </p>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- GAME SCREEN -->
+    <section id="gameScreen" class="screen">
+
+      <div class="hud">
+        <div class="stat">
+          <span>CASE</span>
+          <strong id="caseNumber">1 / 5</strong>
+        </div>
+
+        <div class="stat">
+          <span>SCORE</span>
+          <strong id="score">0</strong>
+        </div>
+
+        <div class="stat">
+          <span>TIME</span>
+          <strong id="timer">25</strong>
+        </div>
+
+        <div class="stat">
+          <span>LIVES</span>
+          <strong id="lives">❤️❤️❤️</strong>
+        </div>
+      </div>
+
+      <div class="mission-panel">
+        <div>
+          <span id="phaseLabel" class="phase-label">
+            MEMORY PHASE
+          </span>
+
+          <h2 id="roomTitle">Detective Office</h2>
+
+          <p id="statusText">
+            Remember the objects carefully.
+          </p>
+        </div>
+
+        <button id="menuBtn" class="secondary-btn">
+          ⌂ Main Menu
+        </button>
+      </div>
+
+      <div class="canvas-container">
+        <canvas id="gameCanvas"
+                width="900"
+                height="500">
+        </canvas>
+
+        <div id="transitionOverlay"
+             class="overlay hidden">
+          <div class="overlay-content">
+            <div class="transition-icon">🕵️</div>
+            <h2>SCENE CHANGING...</h2>
+            <p>Something mysterious has happened!</p>
           </div>
-          <div class="launch-row"><div class="brief-note"><span>ⓘ</span><span id="difficultyInfo">6 objects · 22s to memorize · 40s to investigate</span></div><button id="startBtn" class="primary-btn">OPEN CASE FILE <span>↗</span></button></div>
         </div>
-        <div class="how-grid">
-          <div><span class="step-number">01</span><b>STUDY THE SCENE</b><p>Memorize every object and its location before the timer ends.</p></div>
-          <div><span class="step-number">02</span><b>SCENE TAMPERED</b><p>Objects may move, disappear, or be replaced while the room is hidden.</p></div>
-          <div><span class="step-number">03</span><b>COLLECT EVIDENCE</b><p>Select every suspicious location before your investigation time runs out.</p></div>
-        </div>
-      </section>
+      </div>
 
-      <section id="gameScreen" class="screen">
-        <div class="game-heading">
-          <div><div class="kicker"><span class="kicker-line"></span> ACTIVE INVESTIGATION</div><h1 id="roomTitle">DETECTIVE OFFICE</h1><p id="statusText">Study the scene. Every object matters.</p></div>
-          <button id="menuBtn" class="back-button">← ABANDON CASE</button>
-        </div>
-        <div class="hud">
-          <div class="hud-stat"><span>CASE FILE</span><b id="caseNumber">01 <small>/ 05</small></b><div class="progress-track"><i id="caseProgress"></i></div></div>
-          <div class="hud-stat"><span>CASE SCORE</span><b id="score">0000</b><small class="hud-caption">POINTS</small></div>
-          <div class="hud-stat timer-stat"><span>TIME REMAINING</span><b id="timer">22<span>s</span></b><small id="timerCaption" class="hud-caption">MEMORIZE THE SCENE</small></div>
-          <div class="hud-stat"><span>REMAINING LIVES</span><b id="lives">♥ ♥ ♥</b><small class="hud-caption">DON'T MISS THE CLUES</small></div>
-        </div>
+      <div class="game-footer">
+        <p id="feedback">
+          Memorize the scene carefully.
+        </p>
 
-        <div class="mission-strip"><div class="phase-indicator"><span class="phase-pulse"></span><span id="phaseLabel">MEMORY PHASE</span></div><p id="missionText">Memorize the objects and their exact positions.</p><button id="hintBtn" class="hint-button" disabled>✦ USE HINT <small>−30 PTS</small></button></div>
+        <button id="hintBtn"
+                class="secondary-btn"
+                disabled>
+          💡 Use Hint (-30)
+        </button>
+      </div>
 
-        <div class="investigation-layout">
-          <div class="scene-panel">
-            <div class="scene-toolbar"><span><i class="camera-dot"></i> LIVE SCENE FEED</span><span id="sceneId">CAM 01 · SECURE</span></div>
-            <div class="canvas-wrap">
-              <canvas id="gameCanvas" width="900" height="520" aria-label="Interactive crime scene. Select changed object locations."></canvas>
-              <div id="transitionOverlay" class="overlay hidden"><div class="scan-line"></div><div class="overlay-message"><div class="overlay-symbol">◉</div><h2>SCENE COMPROMISED</h2><p>Reconstructing evidence feed...</p><div class="loading-bar"><i></i></div></div></div>
-            </div>
-            <div class="scene-legend"><span><i class="legend-dot"></i> SELECT THE CHANGED LOCATION</span><span id="foundCounter">EVIDENCE FOUND 0 / 1</span></div>
+      <!-- COUNTDOWN -->
+      <div id="lastFiveCountdown"
+           class="last-five-countdown hidden">
+        <span id="countdownDigit">5</span>
+      </div>
+
+      <!-- RIGHT / WRONG ANSWER -->
+      <div id="answerFeedback"
+           class="answer-feedback hidden">
+        <h1 id="answerFeedbackText"></h1>
+      </div>
+
+      <!-- ACTUAL CORRECT ANSWER -->
+      <div id="actualAnswerOverlay"
+           class="actual-answer-overlay hidden">
+        <div class="actual-answer-content">
+          <div class="actual-answer-icon">🔍</div>
+
+          <h2 class="actual-answer-heading">
+            ACTUAL CORRECT ANSWER
+          </h2>
+
+          <div id="actualAnswerObject"
+               class="actual-answer-object">
           </div>
-          <aside class="intel-panel">
-            <div class="intel-heading"><span>◈</span><div><b>DETECTIVE'S LOG</b><small>FIELD INTELLIGENCE</small></div></div>
-            <div class="objective-box"><span class="mini-label">CURRENT OBJECTIVE</span><b id="objectiveText">Memorize the room</b><p id="objectiveDetail">Study the scene carefully. The smallest detail could solve this case.</p></div>
-            <div class="evidence-heading"><span>EVIDENCE TRACKER</span><b id="evidenceCount">0 / 1</b></div>
-            <div class="evidence-track"><i id="evidenceProgress"></i></div>
-            <div id="evidenceList" class="evidence-list"><div class="empty-evidence">◌<span>No evidence collected yet</span></div></div>
-            <div class="intel-tip"><span>✦ FIELD TIP</span><p id="fieldTip">Look at the empty spaces too. A missing object is still evidence.</p></div>
-          </aside>
-        </div>
-        <div class="game-bottom"><p id="feedback" aria-live="polite">Stay sharp, Detective. The clock is running.</p><span>MEMORY DETECTIVE <i>•</i> CASE DIVISION</span></div>
-      </section>
 
-      <section id="resultScreen" class="screen">
-        <div class="result-wrap">
-          <div class="result-emblem" id="resultIcon">★</div>
-          <div class="kicker"><span class="kicker-line"></span> INVESTIGATION REPORT</div>
-          <h1 id="resultTitle">CASE CLOSED.</h1>
-          <p id="resultMessage">Your report is ready.</p>
-          <div class="result-score"><span>FINAL CASE SCORE</span><b id="finalScore">0000</b><small id="detectiveRank">ROOKIE DETECTIVE</small></div>
-          <div class="result-breakdown"><div><span>CASES CLEARED</span><b id="casesCleared">0 / 5</b></div><div><span>EVIDENCE FOUND</span><b id="totalEvidence">0</b></div><div><span>BEST RECORD</span><b id="resultBest">0</b></div></div>
-          <div class="result-buttons"><button id="playAgainBtn" class="primary-btn">↻ PLAY AGAIN</button><button id="resultMenuBtn" class="back-button">MAIN MENU</button></div>
+          <p id="actualAnswerDescription"
+             class="actual-answer-description">
+          </p>
+
+          <p class="actual-answer-next">
+            Next case starting soon...
+          </p>
         </div>
-      </section>
-    </main>
-    <footer class="footer"><span>MD / CASE DIVISION</span><span>THINK SHARP. TRUST YOUR MEMORY.</span><span>BUILD 2.0.49</span></footer>
-  </div>
+      </div>
+
+    </section>
+
+    <!-- RESULT SCREEN -->
+    <section id="resultScreen" class="screen">
+      <div class="result-content">
+
+        <div id="resultIcon" class="result-icon">
+          🏆
+        </div>
+
+        <h2 id="resultTitle">
+          Investigation Complete!
+        </h2>
+
+        <p id="resultMessage"></p>
+
+        <div class="final-score">
+          <span>YOUR FINAL SCORE</span>
+          <strong id="finalScore">0</strong>
+        </div>
+
+        <p id="detectiveRank"></p>
+
+        <div class="result-records">
+          <h3 id="resultDifficulty">
+            EASY MODE
+          </h3>
+
+          <p>
+            Highest Score:
+            <strong id="resultBest">0</strong>
+          </p>
+
+          <p id="newRecordMessage"></p>
+        </div>
+
+        <div class="result-buttons">
+          <button id="playAgainBtn"
+                  class="primary-btn">
+            ↻ Play Again
+          </button>
+
+          <button id="resultMenuBtn"
+                  class="secondary-btn">
+            ⌂ Dashboard
+          </button>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+    MEMORY DETECTIVE 2D • SOLVE THE MYSTERY
+  </footer>
+
+</div>
 </body>
 </html>

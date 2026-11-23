@@ -1,314 +1,1466 @@
+
 "use strict";
 
+/* ==========================================
+   MEMORY DETECTIVE 2D
+   COMPLETE GAME + DIFFICULTY DASHBOARD
+   ========================================== */
+
 const $ = id => document.getElementById(id);
+
 const canvas = $("gameCanvas");
 const ctx = canvas.getContext("2d");
-const screens = { menu: $("menuScreen"), game: $("gameScreen"), result: $("resultScreen") };
+
+const screens = {
+  menu: $("menuScreen"),
+  game: $("gameScreen"),
+  result: $("resultScreen")
+};
+
+/* GAME SETTINGS */
 
 const SETTINGS = {
-  easy:   { objects: 6, memory: 22, detection: 40, anomalies: 1 },
-  medium: { objects: 8, memory: 18, detection: 34, anomalies: 2 },
-  hard:   { objects: 10, memory: 14, detection: 28, anomalies: 3 }
+  easy: {
+    objects: 5,
+    memory: 25,
+    detection: 35
+  },
+  medium: {
+    objects: 8,
+    memory: 20,
+    detection: 30
+  },
+  hard: {
+    objects: 12,
+    memory: 15,
+    detection: 25
+  }
 };
-const TOTAL_CASES = 5, MAX_LIVES = 3, COLS = 4, ROWS = 3;
-const GRID = { left: 65, top: 105, width: 770, height: 360 };
-const CELL_W = GRID.width / COLS, CELL_H = GRID.height / ROWS;
+
+const TOTAL_CASES = 5;
+const MAX_LIVES = 3;
 
 const ROOMS = [
-  { name: "DETECTIVE OFFICE", wall: "#25374a", floor: "#17283a", accent: "#e2a95c", code: "CAM 01" },
-  { name: "ROYAL MUSEUM", wall: "#49374a", floor: "#2d2638", accent: "#e0b86b", code: "CAM 04" },
-  { name: "SECRET LABORATORY", wall: "#1c4549", floor: "#143238", accent: "#5ce0d0", code: "CAM 07" },
-  { name: "OLD LIBRARY", wall: "#4b382d", floor: "#30251f", accent: "#d8a66e", code: "CAM 02" },
-  { name: "ABANDONED MANSION", wall: "#3d3652", floor: "#252338", accent: "#b6a0ff", code: "CAM 09" }
+  {
+    name: "Detective Office",
+    floor: "#24394d",
+    wall: "#304b67"
+  },
+  {
+    name: "Royal Museum",
+    floor: "#44364b",
+    wall: "#634c69"
+  },
+  {
+    name: "Secret Laboratory",
+    floor: "#1d4749",
+    wall: "#286467"
+  },
+  {
+    name: "Old Library",
+    floor: "#47362c",
+    wall: "#67503d"
+  },
+  {
+    name: "Mystery Warehouse",
+    floor: "#41454b",
+    wall: "#59616a"
+  },
+  {
+    name: "Abandoned Mansion",
+    floor: "#3d334d",
+    wall: "#54466a"
+  }
 ];
-const OBJECTS = [
-  ["Laptop","💻"],["Book","📕"],["Key","🔑"],["Clock","⏰"],["Phone","📱"],["Camera","📷"],
-  ["Diamond","💎"],["Flashlight","🔦"],["Teddy Bear","🧸"],["Gift","🎁"],["Painting","🖼️"],
-  ["Potion","🧪"],["Crown","👑"],["Map","🗺️"],["Magnifier","🔍"],["Radio","📻"],
-  ["Candle","🕯️"],["Trophy","🏆"],["Backpack","🎒"],["Skull","💀"],["Compass","🧭"],
-  ["Microphone","🎤"],["Glasses","👓"],["Gem","💍"]
-].map(([name,emoji],id)=>({name,emoji,id}));
 
-let difficulty = "easy", score = 0, lives = MAX_LIVES, caseNumber = 1;
-let timeLeft = 0, phase = "menu", currentRoom = ROOMS[0];
-let originalScene = [], changedScene = [], targetSlots = [], foundSlots = [];
-let hintUsed = false, soundEnabled = true, timerInterval = null, transitionTimeout = null, feedbackTimeout = null;
-let audioContext = null, gameToken = 0, casesCleared = 0, totalEvidence = 0, selectedSlots = [];
-let bestScore = Number(localStorage.getItem("mdBestScore") || 0);
-$("bestScore").textContent = bestScore.toLocaleString();
+const OBJECTS = [
+  { name: "Laptop", emoji: "💻" },
+  { name: "Book", emoji: "📕" },
+  { name: "Key", emoji: "🔑" },
+  { name: "Clock", emoji: "⏰" },
+  { name: "Phone", emoji: "📱" },
+  { name: "Camera", emoji: "📷" },
+  { name: "Diamond", emoji: "💎" },
+  { name: "Flashlight", emoji: "🔦" },
+  { name: "Teddy Bear", emoji: "🧸" },
+  { name: "Gift", emoji: "🎁" },
+  { name: "Painting", emoji: "🖼️" },
+  { name: "Potion", emoji: "🧪" },
+  { name: "Crown", emoji: "👑" },
+  { name: "Map", emoji: "🗺️" },
+  { name: "Magnifier", emoji: "🔍" },
+  { name: "Radio", emoji: "📻" },
+  { name: "Candle", emoji: "🕯️" },
+  { name: "Trophy", emoji: "🏆" },
+  { name: "Backpack", emoji: "🎒" },
+  { name: "Skull", emoji: "💀" },
+  { name: "Compass", emoji: "🧭" },
+  { name: "Microphone", emoji: "🎤" },
+  { name: "Glasses", emoji: "👓" },
+  { name: "Gem", emoji: "💍" }
+];
+
+/* CANVAS SETTINGS */
+
+const COLS = 4;
+const ROWS = 3;
+const SLOT_COUNT = COLS * ROWS;
+
+const GRID = {
+  left: 75,
+  top: 112,
+  width: 750,
+  height: 360
+};
+
+const CELL_W = GRID.width / COLS;
+const CELL_H = GRID.height / ROWS;
+
+/* GAME STATE */
+
+let difficulty = "easy";
+let score = 0;
+let lives = MAX_LIVES;
+let caseNumber = 1;
+let timeLeft = 0;
+
+let phase = "menu";
+let currentRoom = ROOMS[0];
+
+let originalScene = [];
+let changedScene = [];
+
+let changedSlot = -1;
+let changeType = "";
+let sourceSlot = -1;
+
+let hintUsed = false;
+let soundEnabled = true;
+
+let timerInterval = null;
+let transitionTimeout = null;
+let feedbackTimeout = null;
+
+let audioContext = null;
+let gameToken = 0;
+let previousCountdownNumber = null;
+
+/* ==========================================
+   NEW: DIFFICULTY SCORE STORAGE
+   ========================================== */
+
+const SCORE_STORAGE_KEY =
+  "memoryDetectiveDifficultyScoresV1";
+
+const HISTORY_KEY =
+  "memoryDetectiveHistoryV2";
+
+function readStorage(key, fallback) {
+  try {
+    const raw = localStorage.getItem(key);
+
+    return raw === null
+      ? fallback
+      : JSON.parse(raw);
+  } catch {
+    return fallback;
+  }
+}
+
+function writeStorage(key, value) {
+  try {
+    localStorage.setItem(
+      key,
+      JSON.stringify(value)
+    );
+  } catch {
+    console.warn("Browser storage unavailable.");
+  }
+}
+
+function emptyRecord() {
+  return {
+    best: 0,
+    games: 0,
+    last: 0
+  };
+}
+
+const savedRecords = readStorage(
+  SCORE_STORAGE_KEY,
+  {}
+);
+
+const difficultyScores = {};
+
+for (const level of Object.keys(SETTINGS)) {
+  const old = savedRecords &&
+    typeof savedRecords === "object"
+    ? savedRecords[level]
+    : null;
+
+  difficultyScores[level] = {
+    best: Math.max(0, Number(old?.best) || 0),
+    games: Math.max(0, Number(old?.games) || 0),
+    last: Math.max(0, Number(old?.last) || 0)
+  };
+}
+
+/*
+  Previous versions stored only one overall
+  best score, without its difficulty.
+
+  We intentionally do not assign that score
+  to Easy, Medium, or Hard because its
+  difficulty cannot be verified.
+*/
+
+function saveDifficultyScore(level, finalScore) {
+  const record = difficultyScores[level];
+
+  const previousBest = record.best;
+
+  record.games += 1;
+  record.last = finalScore;
+  record.best = Math.max(
+    record.best,
+    finalScore
+  );
+
+  writeStorage(
+    SCORE_STORAGE_KEY,
+    difficultyScores
+  );
+
+  updateDashboard();
+
+  return finalScore > previousBest;
+}
+
+function updateDashboard() {
+  $("easyBest").textContent =
+    difficultyScores.easy.best;
+
+  $("mediumBest").textContent =
+    difficultyScores.medium.best;
+
+  $("hardBest").textContent =
+    difficultyScores.hard.best;
+
+  const record = difficultyScores[difficulty];
+
+  const labels = {
+    easy: "🟢 EASY MODE RECORDS",
+    medium: "🟡 MEDIUM MODE RECORDS",
+    hard: "🔴 HARD MODE RECORDS"
+  };
+
+  $("dashboardTitle").textContent =
+    labels[difficulty];
+
+  $("dashboardBest").textContent =
+    record.best;
+
+  $("dashboardGames").textContent =
+    record.games;
+
+  $("dashboardLast").textContent =
+    record.last;
+
+  $("dashboardMessage").textContent =
+    record.games === 0
+      ? `No ${difficulty} games completed yet.`
+      : `Your highest ${difficulty} score is ${record.best}.`;
+
+  document.querySelectorAll(
+    ".score-card"
+  ).forEach(card => {
+    card.classList.toggle(
+      "selected",
+      card.dataset.scoreLevel === difficulty
+    );
+  });
+}
+
+/* ==========================================
+   DIFFICULTY SELECTION
+   ========================================== */
+
+function selectDifficulty(level) {
+  if (!SETTINGS[level]) return;
+
+  difficulty = level;
+
+  document.querySelectorAll(
+    ".difficulty"
+  ).forEach(button => {
+    button.classList.toggle(
+      "active",
+      button.dataset.level === level
+    );
+  });
+
+  const config = SETTINGS[level];
+
+  $("difficultyInfo").textContent =
+    `${config.objects} Objects • ` +
+    `${config.memory}s Memory • ` +
+    `${config.detection}s Investigation`;
+
+  updateDashboard();
+}
+
+document.querySelectorAll(
+  ".difficulty"
+).forEach(button => {
+  button.addEventListener("click", () => {
+    selectDifficulty(button.dataset.level);
+    playSound("click");
+  });
+});
+
+document.querySelectorAll(
+  ".score-card"
+).forEach(card => {
+  card.addEventListener("click", () => {
+    selectDifficulty(card.dataset.scoreLevel);
+    playSound("click");
+  });
+});
+
+/* ==========================================
+   HELPERS
+   ========================================== */
+
+function randomInt(max) {
+  return Math.floor(Math.random() * max);
+}
+
+function shuffle(array) {
+  const copy = [...array];
+
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = randomInt(i + 1);
+
+    [copy[i], copy[j]] = [
+      copy[j],
+      copy[i]
+    ];
+  }
+
+  return copy;
+}
 
 function showScreen(name) {
-  Object.values(screens).forEach(s => s.classList.remove("active"));
+  Object.values(screens).forEach(screen => {
+    screen.classList.remove("active");
+  });
+
   screens[name].classList.add("active");
 }
-function setStatus(text) { $("statusText").textContent = text; }
-function setFeedback(text) { $("feedback").textContent = text; }
-function playSound(type="click") {
+
+function setStatus(message) {
+  $("statusText").textContent = message;
+}
+
+function setFeedback(message) {
+  $("feedback").textContent = message;
+}
+
+function updateHUD() {
+  $("caseNumber").textContent =
+    `${caseNumber} / ${TOTAL_CASES}`;
+
+  $("score").textContent = score;
+  $("timer").textContent = timeLeft;
+
+  $("lives").textContent =
+    "❤️".repeat(lives) +
+    "🖤".repeat(MAX_LIVES - lives);
+
+  $("timer").classList.toggle(
+    "urgent",
+    timeLeft > 0 && timeLeft <= 5
+  );
+}
+
+/* ==========================================
+   SOUND EFFECTS
+   ========================================== */
+
+function playSound(type) {
   if (!soundEnabled) return;
+
   try {
-    const Audio = window.AudioContext || window.webkitAudioContext;
-    if (!Audio) return;
-    if (!audioContext) audioContext = new Audio();
-    if (audioContext.state === "suspended") audioContext.resume();
-    const osc = audioContext.createOscillator(), gain = audioContext.createGain();
+    const AudioClass =
+      window.AudioContext ||
+      window.webkitAudioContext;
+
+    if (!AudioClass) return;
+
+    if (!audioContext) {
+      audioContext = new AudioClass();
+    }
+
+    if (audioContext.state === "suspended") {
+      audioContext.resume();
+    }
+
+    const oscillator =
+      audioContext.createOscillator();
+
+    const gain =
+      audioContext.createGain();
+
+    oscillator.connect(gain);
+    gain.connect(audioContext.destination);
+
+    const frequencies = {
+      correct: 700,
+      wrong: 180,
+      click: 420,
+      win: 900,
+      countdown: 850
+    };
+
     const now = audioContext.currentTime;
-    const tones = { click:440, correct:760, wrong:150, win:980, transition:260 };
-    osc.type = type === "wrong" ? "triangle" : "sine";
-    osc.frequency.setValueAtTime(tones[type] || 440, now);
-    if (type === "win") osc.frequency.exponentialRampToValueAtTime(1400, now + .28);
-    gain.gain.setValueAtTime(.08, now);
-    gain.gain.exponentialRampToValueAtTime(.001, now + .25);
-    osc.connect(gain); gain.connect(audioContext.destination);
-    osc.start(now); osc.stop(now + .26);
-  } catch (_) {}
-}
-$("soundBtn").addEventListener("click", () => {
-  soundEnabled = !soundEnabled;
-  $("soundBtn").innerHTML = soundEnabled ? "🔊 <span>Sound</span>" : "🔇 <span>Muted</span>";
-  playSound("click");
-});
 
-document.querySelectorAll(".difficulty").forEach(btn => btn.addEventListener("click", () => {
-  difficulty = btn.dataset.level;
-  document.querySelectorAll(".difficulty").forEach(b => b.classList.toggle("active", b === btn));
-  const c = SETTINGS[difficulty];
-  $("difficultyInfo").textContent = `${c.objects} objects · ${c.memory}s to memorize · ${c.detection}s to investigate · ${c.anomalies} ${c.anomalies === 1 ? "anomaly" : "anomalies"} per case`;
-  playSound();
-}));
+    oscillator.type =
+      type === "countdown"
+        ? "square"
+        : "sine";
 
-function randomInt(max) { return Math.floor(Math.random() * max); }
-function shuffle(array) {
-  const a = [...array];
-  for (let i=a.length-1;i>0;i--) { const j=randomInt(i+1); [a[i],a[j]]=[a[j],a[i]]; }
-  return a;
+    oscillator.frequency.setValueAtTime(
+      frequencies[type] || 400,
+      now
+    );
+
+    gain.gain.setValueAtTime(
+      type === "countdown" ? 0.07 : 0.12,
+      now
+    );
+
+    gain.gain.exponentialRampToValueAtTime(
+      0.001,
+      now + 0.18
+    );
+
+    oscillator.start(now);
+    oscillator.stop(now + 0.18);
+
+  } catch {
+    // Audio is optional.
+  }
 }
-function makeScene() {
+
+$("soundBtn").addEventListener(
+  "click",
+  () => {
+    soundEnabled = !soundEnabled;
+
+    $("soundBtn").textContent =
+      soundEnabled
+        ? "🔊 Sound On"
+        : "🔇 Sound Off";
+  }
+);
+
+/* ==========================================
+   COUNTDOWN
+   ========================================== */
+
+function updateLastFiveCountdown(seconds) {
+  const overlay = $("lastFiveCountdown");
+  const digit = $("countdownDigit");
+
+  if (seconds >= 1 && seconds <= 5) {
+    overlay.classList.remove("hidden");
+
+    if (previousCountdownNumber !== seconds) {
+      digit.textContent = seconds;
+
+      digit.classList.remove(
+        "countdown-pop"
+      );
+
+      void digit.offsetWidth;
+
+      digit.classList.add(
+        "countdown-pop"
+      );
+
+      playSound("countdown");
+
+      previousCountdownNumber = seconds;
+    }
+  } else {
+    overlay.classList.add("hidden");
+    digit.classList.remove("countdown-pop");
+    previousCountdownNumber = null;
+  }
+}
+
+function hideCountdown() {
+  updateLastFiveCountdown(0);
+}
+
+/* ==========================================
+   GAME TIMERS
+   ========================================== */
+
+function clearGameTimers() {
+  clearInterval(timerInterval);
+  clearTimeout(transitionTimeout);
+  clearTimeout(feedbackTimeout);
+
+  timerInterval = null;
+  transitionTimeout = null;
+  feedbackTimeout = null;
+
+  hideCountdown();
+
+  $("answerFeedback").classList.add(
+    "hidden"
+  );
+
+  $("actualAnswerOverlay").classList.add(
+    "hidden"
+  );
+}
+
+function startCountdown(seconds, onComplete) {
+  clearInterval(timerInterval);
+
+  timeLeft = seconds;
+  updateHUD();
+
+  updateLastFiveCountdown(timeLeft);
+
+  const token = gameToken;
+
+  timerInterval = setInterval(() => {
+    if (token !== gameToken) {
+      clearInterval(timerInterval);
+      return;
+    }
+
+    timeLeft = Math.max(0, timeLeft - 1);
+
+    updateHUD();
+    updateLastFiveCountdown(timeLeft);
+
+    if (timeLeft <= 0) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+
+      hideCountdown();
+      onComplete();
+    }
+  }, 1000);
+}
+
+/* ==========================================
+   RANDOM MYSTERY GENERATOR
+   ========================================== */
+
+function createScene() {
   const count = SETTINGS[difficulty].objects;
-  const picks = shuffle(OBJECTS).slice(0,count);
-  const slots = shuffle(Array.from({length: COLS*ROWS},(_,i)=>i));
-  const scene = Array(COLS*ROWS).fill(null);
-  picks.forEach((obj,i)=>scene[slots[i]]={...obj});
+
+  const selectedObjects = shuffle(
+    OBJECTS.map((_, index) => index)
+  ).slice(0, count);
+
+  const positions = shuffle(
+    Array.from(
+      { length: SLOT_COUNT },
+      (_, index) => index
+    )
+  );
+
+  const scene = Array(
+    SLOT_COUNT
+  ).fill(null);
+
+  selectedObjects.forEach((id, index) => {
+    scene[positions[index]] = {
+      ...OBJECTS[id],
+      id
+    };
+  });
+
   return scene;
 }
-function makeMystery() {
-  const original = makeScene(), changed = original.map(x=>x ? {...x} : null);
-  const occupied = original.map((x,i)=>x ? i : -1).filter(i=>i>=0);
-  const empty = original.map((x,i)=>!x ? i : -1).filter(i=>i>=0);
-  const reserved = new Set(), targets = [], types = [];
-  const count = SETTINGS[difficulty].anomalies;
-  for (let n=0;n<count;n++) {
-    const availableSources = occupied.filter(i=>!reserved.has(i));
-    if (!availableSources.length) break;
-    const source = availableSources[randomInt(availableSources.length)];
-    const possible = empty.filter(i=>!reserved.has(i));
-    let type;
-    if (possible.length && Math.random() < .45) type = "move";
-    else if (Math.random() < .5) type = "replace";
-    else type = "disappear";
+
+let mysteryHistory = readStorage(
+  HISTORY_KEY,
+  []
+);
+
+if (!Array.isArray(mysteryHistory)) {
+  mysteryHistory = [];
+}
+
+function generateMystery() {
+  let mystery;
+
+  for (let attempt = 0; attempt < 200; attempt++) {
+    const roomIndex = randomInt(ROOMS.length);
+    const scene = createScene();
+
+    const occupied = [];
+    const empty = [];
+
+    scene.forEach((item, index) => {
+      if (item) {
+        occupied.push(index);
+      } else {
+        empty.push(index);
+      }
+    });
+
+    const source =
+      occupied[randomInt(occupied.length)];
+
+    const types = empty.length
+      ? ["move", "replace", "disappear"]
+      : ["replace", "disappear"];
+
+    const type = types[
+      randomInt(types.length)
+    ];
+
+    const changed = scene.map(item =>
+      item ? { ...item } : null
+    );
+
+    let target = source;
+    let replacementId = -1;
 
     if (type === "move") {
-      const destination = possible[randomInt(possible.length)];
-      changed[destination] = changed[source]; changed[source] = null;
-      targets.push(destination); reserved.add(source); reserved.add(destination);
-      empty.splice(empty.indexOf(destination),1);
-      occupied.splice(occupied.indexOf(source),1);
-    } else if (type === "replace") {
-      const used = new Set(changed.filter(Boolean).map(x=>x.id));
-      const replacement = OBJECTS.filter(x=>!used.has(x.id))[randomInt(OBJECTS.filter(x=>!used.has(x.id)).length)];
-      changed[source] = {...replacement}; targets.push(source); reserved.add(source);
-      occupied.splice(occupied.indexOf(source),1);
-    } else {
-      changed[source] = null; targets.push(source); reserved.add(source);
-      occupied.splice(occupied.indexOf(source),1);
-      empty.push(source);
+      target = empty[randomInt(empty.length)];
+
+      changed[target] = changed[source];
+      changed[source] = null;
     }
-    types.push(type);
+
+    if (type === "replace") {
+      const usedIds = scene
+        .filter(Boolean)
+        .map(item => item.id);
+
+      const replacements = OBJECTS
+        .map((item, id) => ({
+          ...item,
+          id
+        }))
+        .filter(item =>
+          !usedIds.includes(item.id)
+        );
+
+      const replacement = replacements[
+        randomInt(replacements.length)
+      ];
+
+      changed[source] = replacement;
+      replacementId = replacement.id;
+    }
+
+    if (type === "disappear") {
+      changed[source] = null;
+    }
+
+    const signature = JSON.stringify({
+      difficulty,
+      roomIndex,
+      objects: scene.map(item =>
+        item ? item.id : -1
+      ),
+      type,
+      source,
+      target,
+      replacementId
+    });
+
+    mystery = {
+      room: ROOMS[roomIndex],
+      original: scene,
+      changed,
+      source,
+      target,
+      type,
+      signature
+    };
+
+    if (!mysteryHistory.includes(signature)) {
+      break;
+    }
   }
-  return { original, changed, targets, types };
+
+  mysteryHistory.push(mystery.signature);
+
+  mysteryHistory = mysteryHistory.slice(-5000);
+
+  writeStorage(
+    HISTORY_KEY,
+    mysteryHistory
+  );
+
+  return mystery;
 }
-function roundedRect(x,y,w,h,r,fill,stroke=null) {
-  ctx.beginPath(); ctx.roundRect(x,y,w,h,r); ctx.fillStyle=fill; ctx.fill();
-  if (stroke) { ctx.strokeStyle=stroke; ctx.lineWidth=1.5; ctx.stroke(); }
+
+/* ==========================================
+   CANVAS DRAWING
+   ========================================== */
+
+function roundedRect(x, y, w, h, radius, fill) {
+  ctx.beginPath();
+  ctx.roundRect(x, y, w, h, radius);
+  ctx.fillStyle = fill;
+  ctx.fill();
 }
-function drawBackground() {
-  const g = ctx.createLinearGradient(0,0,0,520);
-  g.addColorStop(0,currentRoom.wall); g.addColorStop(.23,currentRoom.wall); g.addColorStop(.24,currentRoom.floor); g.addColorStop(1,"#111a26");
-  ctx.fillStyle=g; ctx.fillRect(0,0,900,520);
-  ctx.fillStyle="rgba(0,0,0,.2)"; ctx.fillRect(0,112,900,9);
-  // Wall panels and floor perspective
-  for(let x=0;x<900;x+=150){ctx.fillStyle="rgba(255,255,255,.025)";ctx.fillRect(x+4,10,2,94);}
-  ctx.strokeStyle="rgba(255,255,255,.055)";ctx.lineWidth=1;
-  for(let x=0;x<=900;x+=55){ctx.beginPath();ctx.moveTo(x,122);ctx.lineTo(x-25,520);ctx.stroke();}
-  for(let y=170;y<520;y+=52){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(900,y);ctx.stroke();}
-  // Window / wall clock details
-  roundedRect(36,24,140,66,5,"rgba(8,16,26,.45)","rgba(255,255,255,.12)");
-  ctx.fillStyle="rgba(255,255,255,.10)";ctx.fillRect(103,25,3,64);ctx.fillRect(37,55,138,3);
-  ctx.fillStyle=currentRoom.accent;ctx.font="700 17px 'DM Sans'";ctx.textAlign="left";ctx.fillText(currentRoom.name,198,54);
-  ctx.fillStyle="rgba(255,255,255,.55)";ctx.font="11px 'DM Sans'";ctx.fillText("SECURE LOCATION  /  EVIDENCE SCAN",198,76);
-  ctx.font="27px Arial";ctx.fillText("📹",820,63);
-  ctx.fillStyle="rgba(255,255,255,.25)";ctx.font="10px 'DM Sans'";ctx.fillText("CAMERA ACTIVE",770,91);
-}
+
 function slotBounds(index) {
-  return {x:GRID.left+(index%COLS)*CELL_W,y:GRID.top+Math.floor(index/COLS)*CELL_H,w:CELL_W,h:CELL_H};
+  const col = index % COLS;
+  const row = Math.floor(index / COLS);
+
+  return {
+    x: GRID.left + col * CELL_W,
+    y: GRID.top + row * CELL_H,
+    w: CELL_W,
+    h: CELL_H
+  };
 }
+
+function drawBackground() {
+  ctx.fillStyle = currentRoom.wall;
+
+  ctx.fillRect(
+    0, 0,
+    canvas.width,
+    115
+  );
+
+  ctx.fillStyle = currentRoom.floor;
+
+  ctx.fillRect(
+    0, 115,
+    canvas.width,
+    canvas.height - 115
+  );
+
+  ctx.fillStyle = "rgba(0,0,0,0.25)";
+
+  ctx.fillRect(
+    0, 108,
+    canvas.width,
+    12
+  );
+
+  ctx.strokeStyle =
+    "rgba(255,255,255,0.045)";
+
+  ctx.lineWidth = 1;
+
+  for (let x = 0; x < canvas.width; x += 45) {
+    ctx.beginPath();
+    ctx.moveTo(x, 115);
+    ctx.lineTo(x, canvas.height);
+    ctx.stroke();
+  }
+
+  for (let y = 115; y < canvas.height; y += 45) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(canvas.width, y);
+    ctx.stroke();
+  }
+
+  roundedRect(
+    25, 24, 340, 58,
+    12, "#101c30"
+  );
+
+  ctx.fillStyle = "#37d5ff";
+  ctx.font = "bold 23px Arial";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "alphabetic";
+
+  ctx.fillText(
+    currentRoom.name,
+    45, 61
+  );
+
+  ctx.font = "32px Arial";
+  ctx.fillText("📹", 825, 62);
+}
+
 function drawScene(scene) {
-  ctx.clearRect(0,0,900,520); drawBackground();
-  scene.forEach((item,index)=>{
-    const c=slotBounds(index), x=c.x+10, y=c.y+9, w=c.w-20, h=c.h-18;
-    roundedRect(x+3,y+5,w,h,13,"rgba(0,0,0,.28)");
-    const selected = selectedSlots.includes(index);
-    const found = foundSlots.includes(index);
-    let fill = selected ? "rgba(54,210,157,.18)" : "rgba(10,22,35,.78)";
-    let stroke = selected ? "rgba(54,210,157,.85)" : "rgba(160,190,215,.25)";
-    if (phase==="detect" && found) { fill="rgba(54,210,157,.18)"; stroke="#35e5a1"; }
-    roundedRect(x,y,w,h,13,fill,stroke);
+  ctx.clearRect(
+    0, 0,
+    canvas.width,
+    canvas.height
+  );
+
+  drawBackground();
+
+  scene.forEach((item, index) => {
+    const cell = slotBounds(index);
+
+    const x = cell.x + 12;
+    const y = cell.y + 9;
+    const w = cell.w - 24;
+    const h = cell.h - 18;
+
+    roundedRect(
+      x + 3, y + 5,
+      w, h, 14,
+      "rgba(0,0,0,0.25)"
+    );
+
+    roundedRect(
+      x, y, w, h, 14,
+      "rgba(12,24,43,0.75)"
+    );
+
+    ctx.strokeStyle =
+      "rgba(111,179,216,0.35)";
+
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.roundRect(x, y, w, h, 14);
+    ctx.stroke();
+
     if (item) {
-      ctx.textAlign="center";ctx.textBaseline="middle";ctx.font="48px 'Segoe UI Emoji',Arial";
-      ctx.fillText(item.emoji,c.x+c.w/2,c.y+55);
-      ctx.fillStyle="#e5edf6";ctx.font="600 13px 'DM Sans'";ctx.fillText(item.name,c.x+c.w/2,c.y+101);
-    } else {
-      ctx.fillStyle="rgba(255,255,255,.14)";ctx.font="11px 'DM Sans'";ctx.fillText("EMPTY",c.x+c.w/2,c.y+60);
-    }
-    if (phase==="detect" && found) {
-      ctx.fillStyle="#35e5a1";ctx.font="bold 18px Arial";ctx.fillText("✓",c.x+c.w-24,c.y+22);
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+
+      ctx.font =
+        "49px 'Segoe UI Emoji', Arial";
+
+      ctx.fillText(
+        item.emoji,
+        cell.x + cell.w / 2,
+        cell.y + 47
+      );
+
+      ctx.font = "bold 13px Arial";
+      ctx.fillStyle = "#dcecff";
+
+      ctx.fillText(
+        item.name,
+        cell.x + cell.w / 2,
+        cell.y + 92
+      );
     }
   });
-  if(phase==="detect" && hintUsed) targetSlots.forEach(i=>{
-    if(!foundSlots.includes(i)){const c=slotBounds(i);ctx.strokeStyle="#ffcc66";ctx.lineWidth=4;ctx.setLineDash([9,6]);ctx.strokeRect(c.x+7,c.y+7,c.w-14,c.h-14);ctx.setLineDash([]);}
-  });
+
+  if (phase === "detect" && hintUsed) {
+    highlightSlot(
+      changedSlot,
+      "#ffcc66",
+      true
+    );
+  }
 }
-function updateHUD() {
-  $("caseNumber").innerHTML = `${String(caseNumber).padStart(2,"0")} <small>/ 05</small>`;
-  $("score").textContent=String(score).padStart(4,"0");
-  $("timer").innerHTML=`${timeLeft}<span>s</span>`;
-  $("lives").textContent="♥ ".repeat(lives)+"♡ ".repeat(MAX_LIVES-lives);
-  $("timer").classList.toggle("urgent",timeLeft<=7 && phase==="detect");
-  $("caseProgress").style.width=`${(casesCleared/TOTAL_CASES)*100}%`;
-  $("foundCounter").textContent=`EVIDENCE FOUND ${foundSlots.length} / ${targetSlots.length}`;
-  $("evidenceCount").textContent=`${foundSlots.length} / ${targetSlots.length}`;
-  $("evidenceProgress").style.width=`${targetSlots.length ? foundSlots.length/targetSlots.length*100 : 0}%`;
+
+function highlightSlot(
+  index,
+  color,
+  dashed = false
+) {
+  if (index < 0 || index >= SLOT_COUNT) {
+    return;
+  }
+
+  const cell = slotBounds(index);
+
+  ctx.save();
+
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 5;
+  ctx.shadowColor = color;
+  ctx.shadowBlur = 15;
+
+  if (dashed) {
+    ctx.setLineDash([10, 7]);
+  }
+
+  ctx.beginPath();
+
+  ctx.roundRect(
+    cell.x + 5,
+    cell.y + 3,
+    cell.w - 10,
+    cell.h - 6,
+    16
+  );
+
+  ctx.stroke();
+  ctx.restore();
 }
-function clearTimers(){clearInterval(timerInterval);clearTimeout(transitionTimeout);clearTimeout(feedbackTimeout);timerInterval=transitionTimeout=feedbackTimeout=null;}
-function countdown(seconds,callback){
-  clearInterval(timerInterval);timeLeft=seconds;updateHUD();
-  timerInterval=setInterval(()=>{timeLeft--;updateHUD();if(timeLeft<=0){clearInterval(timerInterval);timerInterval=null;callback();}},1000);
+
+/* ==========================================
+   GAME FLOW
+   ========================================== */
+
+function startGame() {
+  clearGameTimers();
+  gameToken++;
+
+  score = 0;
+  lives = MAX_LIVES;
+  caseNumber = 1;
+
+  showScreen("game");
+  startCase();
 }
-function startGame(){
-  clearTimers();gameToken++;score=0;lives=MAX_LIVES;caseNumber=1;casesCleared=0;totalEvidence=0;
-  showScreen("game");startCase();
+
+function startCase() {
+  clearGameTimers();
+  gameToken++;
+
+  const mystery = generateMystery();
+
+  currentRoom = mystery.room;
+  originalScene = mystery.original;
+  changedScene = mystery.changed;
+
+  sourceSlot = mystery.source;
+  changedSlot = mystery.target;
+  changeType = mystery.type;
+
+  hintUsed = false;
+  phase = "memory";
+
+  $("transitionOverlay").classList.add(
+    "hidden"
+  );
+
+  $("hintBtn").disabled = true;
+
+  $("phaseLabel").textContent =
+    "MEMORY PHASE";
+
+  $("roomTitle").textContent =
+    currentRoom.name;
+
+  setStatus(
+    "Study the objects and remember their positions."
+  );
+
+  setFeedback(
+    "Memorize the scene carefully, Detective."
+  );
+
+  drawScene(originalScene);
+  updateHUD();
+
+  startCountdown(
+    SETTINGS[difficulty].memory,
+    beginTransition
+  );
 }
-function startCase(){
-  clearTimers();gameToken++;
-  const mystery=makeMystery();
-  currentRoom=ROOMS[(caseNumber-1)%ROOMS.length];
-  originalScene=mystery.original;changedScene=mystery.changed;targetSlots=mystery.targets;foundSlots=[];selectedSlots=[];
-  hintUsed=false;phase="memory";
-  $("transitionOverlay").classList.add("hidden");$("hintBtn").disabled=true;
-  $("roomTitle").textContent=currentRoom.name;$("sceneId").textContent=`${currentRoom.code} · SECURE`;
-  $("phaseLabel").textContent="MEMORY PHASE";$("missionText").textContent="Memorize the objects and their exact positions.";
-  $("objectiveText").textContent="Memorize the room";$("objectiveDetail").textContent=`There are ${SETTINGS[difficulty].objects} objects in this scene. Pay attention to empty spaces and object positions.`;
-  $("timerCaption").textContent="MEMORIZE THE SCENE";$("fieldTip").textContent="Look at the empty spaces too. A missing object is still evidence.";
-  $("evidenceList").innerHTML='<div class="empty-evidence">◌<span>No evidence collected yet</span></div>';
-  setStatus("Study the scene. Every object matters.");setFeedback("Stay sharp, Detective. The clock is running.");
-  drawScene(originalScene);updateHUD();
-  const token=gameToken;
-  countdown(SETTINGS[difficulty].memory,()=>{if(token===gameToken) beginTransition();});
+
+function beginTransition() {
+  phase = "transition";
+
+  hideCountdown();
+
+  $("phaseLabel").textContent =
+    "SCENE CHANGING";
+
+  $("transitionOverlay").classList.remove(
+    "hidden"
+  );
+
+  $("hintBtn").disabled = true;
+
+  setStatus(
+    "Something has changed in the room!"
+  );
+
+  setFeedback(
+    "The crime scene is being altered..."
+  );
+
+  playSound("click");
+
+  const token = gameToken;
+
+  transitionTimeout = setTimeout(() => {
+    if (token === gameToken) {
+      beginDetection();
+    }
+  }, 2000);
 }
-function beginTransition(){
-  phase="transition";$("phaseLabel").textContent="SCENE COMPROMISED";$("missionText").textContent="The room has been tampered with. Prepare to investigate.";
-  $("transitionOverlay").classList.remove("hidden");$("hintBtn").disabled=true;
-  setStatus("An unknown person has entered the location.");setFeedback("Evidence feed interrupted...");
-  playSound("transition");const token=gameToken;
-  transitionTimeout=setTimeout(()=>{if(token===gameToken)beginDetection();},2400);
+
+function beginDetection() {
+  phase = "detect";
+
+  $("transitionOverlay").classList.add(
+    "hidden"
+  );
+
+  $("phaseLabel").textContent =
+    "INVESTIGATION PHASE";
+
+  setStatus(
+    "Find the changed object before time runs out!"
+  );
+
+  setFeedback(
+    "Click the changed object. If one disappeared, " +
+    "click its previous location."
+  );
+
+  $("hintBtn").disabled = false;
+
+  drawScene(changedScene);
+
+  startCountdown(
+    SETTINGS[difficulty].detection,
+    () => handleWrongAnswer("Time is up!")
+  );
 }
-function beginDetection(){
-  phase="detect";$("transitionOverlay").classList.add("hidden");$("phaseLabel").textContent="INVESTIGATION PHASE";
-  $("missionText").textContent=`Find ${targetSlots.length} suspicious ${targetSlots.length===1?"location":"locations"} before time runs out.`;
-  $("objectiveText").textContent="Identify every anomaly";$("objectiveDetail").textContent="Select the tile where an object moved, vanished, or was replaced. Each correct selection is recorded as evidence.";
-  $("timerCaption").textContent="INVESTIGATION ACTIVE";$("hintBtn").disabled=false;
-  $("sceneId").textContent=`${currentRoom.code} · TAMPER ALERT`;
-  setStatus("The scene has changed. Find every anomaly.");setFeedback("Click each changed location. Wrong selections cost one life.");
-  drawScene(changedScene);const token=gameToken;
-  countdown(SETTINGS[difficulty].detection,()=>{if(token===gameToken) failCase("Time expired. The evidence has gone cold.");});
+
+/* ==========================================
+   CANVAS CLICK
+   ========================================== */
+
+function getClickedSlot(event) {
+  const rect = canvas.getBoundingClientRect();
+
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+
+  const x =
+    (event.clientX - rect.left) * scaleX;
+
+  const y =
+    (event.clientY - rect.top) * scaleY;
+
+  const col = Math.floor(
+    (x - GRID.left) / CELL_W
+  );
+
+  const row = Math.floor(
+    (y - GRID.top) / CELL_H
+  );
+
+  if (
+    col < 0 || col >= COLS ||
+    row < 0 || row >= ROWS
+  ) {
+    return -1;
+  }
+
+  return row * COLS + col;
 }
-function clickedSlot(event){
-  const rect=canvas.getBoundingClientRect(),x=(event.clientX-rect.left)*(canvas.width/rect.width),y=(event.clientY-rect.top)*(canvas.height/rect.height);
-  const col=Math.floor((x-GRID.left)/CELL_W),row=Math.floor((y-GRID.top)/CELL_H);
-  if(col<0||col>=COLS||row<0||row>=ROWS)return -1;
-  return row*COLS+col;
-}
-canvas.addEventListener("click",event=>{
-  if(phase!=="detect")return;
-  const slot=clickedSlot(event);if(slot<0)return;
-  if(foundSlots.includes(slot))return;
-  if(targetSlots.includes(slot)){
-    foundSlots.push(slot);selectedSlots.push(slot);totalEvidence++;
-    const earned=100+Math.max(0,timeLeft)*3;score+=earned;
-    playSound("correct");addEvidence(slot,earned);updateHUD();drawScene(changedScene);
-    setFeedback(`Evidence confirmed. +${earned} points. ${targetSlots.length-foundSlots.length} remaining.`);
-    if(foundSlots.length===targetSlots.length) completeCase();
-  }else{
-    lives--;playSound("wrong");updateHUD();
-    setFeedback("False lead! That location is unchanged. You lost one life.");
-    canvas.classList.remove("shake");void canvas.offsetWidth;canvas.classList.add("shake");
-    if(lives<=0) finishGame(false);
+
+canvas.addEventListener("click", event => {
+  if (phase !== "detect") return;
+
+  const selectedSlot = getClickedSlot(event);
+
+  if (selectedSlot === -1) return;
+
+  if (selectedSlot === changedSlot) {
+    handleCorrectAnswer();
+  } else {
+    handleWrongAnswer(
+      "That is not the changed object!"
+    );
   }
 });
-function addEvidence(slot,points){
-  const item=changedScene[slot]||originalScene[slot];
-  const label=item?item.name:"Empty location";
-  const row=document.createElement("div");row.className="evidence-item";
-  row.innerHTML=`<span class="evidence-check">✓</span><span><b>${label}</b><small>ANOMALY CONFIRMED</small></span><strong>+${points}</strong>`;
-  const list=$("evidenceList");if(list.querySelector(".empty-evidence"))list.innerHTML="";
-  list.appendChild(row);
+
+/* ==========================================
+   RIGHT / WRONG FEEDBACK
+   ========================================== */
+
+function showAnswerFeedback(isCorrect, callback) {
+  const box = $("answerFeedback");
+  const text = $("answerFeedbackText");
+
+  box.classList.remove(
+    "hidden",
+    "correct",
+    "wrong"
+  );
+
+  box.classList.add(
+    isCorrect ? "correct" : "wrong"
+  );
+
+  text.textContent = isCorrect
+    ? "Right Answer!"
+    : "Wrong Answer!";
+
+  text.classList.remove("feedback-pop");
+  void text.offsetWidth;
+  text.classList.add("feedback-pop");
+
+  const token = gameToken;
+
+  clearTimeout(feedbackTimeout);
+
+  feedbackTimeout = setTimeout(() => {
+    if (token !== gameToken) return;
+
+    box.classList.add("hidden");
+    callback();
+  }, 2000);
 }
-function completeCase(){
-  phase="resolved";clearInterval(timerInterval);timerInterval=null;casesCleared++;
-  const bonus=150+timeLeft*5;score+=bonus;playSound("win");updateHUD();
-  $("phaseLabel").textContent="CASE SOLVED";$("missionText").textContent="All anomalies identified. Evidence secured.";
-  $("hintBtn").disabled=true;setStatus("Excellent work. The case is solved.");
-  setFeedback(`CASE CLEARED · TIME BONUS +${bonus} POINTS`);
-  const token=gameToken;feedbackTimeout=setTimeout(()=>{if(token!==gameToken)return;if(caseNumber>=TOTAL_CASES)finishGame(true);else{caseNumber++;startCase();}},1900);
+
+/* ==========================================
+   ACTUAL CORRECT ANSWER
+   ========================================== */
+
+function positionName(slot) {
+  const row = Math.floor(slot / COLS) + 1;
+  const col = (slot % COLS) + 1;
+
+  return `Row ${row}, Column ${col}`;
 }
-function failCase(message){
-  phase="resolved";clearInterval(timerInterval);timerInterval=null;lives--;updateHUD();playSound("wrong");
-  setStatus(message);setFeedback("Case failed. The next file is being prepared.");
-  $("phaseLabel").textContent="CASE FAILED";$("hintBtn").disabled=true;
-  const token=gameToken;feedbackTimeout=setTimeout(()=>{if(token!==gameToken)return;if(lives<=0)finishGame(false);else if(caseNumber>=TOTAL_CASES)finishGame(true);else{caseNumber++;startCase();}},1900);
+
+function getActualAnswer() {
+  if (changeType === "move") {
+    const item = changedScene[changedSlot];
+
+    return {
+      name: `${item.emoji} ${item.name}`,
+      description:
+        `${item.name} moved from ` +
+        `${positionName(sourceSlot)} to ` +
+        `${positionName(changedSlot)}.`
+    };
+  }
+
+  if (changeType === "replace") {
+    const oldItem = originalScene[changedSlot];
+    const newItem = changedScene[changedSlot];
+
+    return {
+      name: `${newItem.emoji} ${newItem.name}`,
+      description:
+        `${oldItem.emoji} ${oldItem.name} was replaced ` +
+        `by ${newItem.emoji} ${newItem.name} at ` +
+        `${positionName(changedSlot)}.`
+    };
+  }
+
+  const item = originalScene[changedSlot];
+
+  return {
+    name: `${item.emoji} ${item.name}`,
+    description:
+      `${item.name} disappeared from ` +
+      `${positionName(changedSlot)}.`
+  };
 }
-$("hintBtn").addEventListener("click",()=>{
-  if(phase!=="detect"||hintUsed)return;
-  hintUsed=true;score=Math.max(0,score-30);$("hintBtn").disabled=true;
-  $("fieldTip").textContent="Hint activated: highlighted tiles contain the changed evidence.";
-  setFeedback("Scanner pulse activated. Check the highlighted locations. −30 points");
-  playSound();updateHUD();drawScene(changedScene);
-});
-function rankFor(points){
-  if(points>=2200)return "LEGENDARY DETECTIVE";
-  if(points>=1500)return "MASTER INVESTIGATOR";
-  if(points>=800)return "SENIOR DETECTIVE";
-  return "ROOKIE DETECTIVE";
+
+function showActualAnswer(callback) {
+  const answer = getActualAnswer();
+
+  $("actualAnswerObject").textContent =
+    answer.name;
+
+  $("actualAnswerDescription").textContent =
+    answer.description;
+
+  $("actualAnswerOverlay").classList.remove(
+    "hidden"
+  );
+
+  $("phaseLabel").textContent =
+    "ANSWER REVEALED";
+
+  setStatus(
+    `Actual answer: ${answer.name}`
+  );
+
+  setFeedback(answer.description);
+
+  drawScene(changedScene);
+
+  highlightSlot(
+    changedSlot,
+    "#35e5a1"
+  );
+
+  if (changeType === "move") {
+    highlightSlot(
+      sourceSlot,
+      "#37d5ff",
+      true
+    );
+  }
+
+  const token = gameToken;
+
+  clearTimeout(feedbackTimeout);
+
+  feedbackTimeout = setTimeout(() => {
+    if (token !== gameToken) return;
+
+    $("actualAnswerOverlay").classList.add(
+      "hidden"
+    );
+
+    callback();
+  }, 3000);
 }
-function finishGame(completed){
-  clearTimers();gameToken++;phase="result";
-  if(score>bestScore){bestScore=score;localStorage.setItem("mdBestScore",String(bestScore));}
-  const rank=rankFor(score);
-  $("headerRank").textContent=rank;$("finalScore").textContent=score.toLocaleString();
-  $("resultBest").textContent=bestScore.toLocaleString();$("bestScore").textContent=bestScore.toLocaleString();
-  $("casesCleared").textContent=`${casesCleared} / ${TOTAL_CASES}`;$("totalEvidence").textContent=totalEvidence;
-  $("detectiveRank").textContent=rank;
-  $("resultIcon").textContent=completed?"★":"⌕";
-  $("resultTitle").textContent=completed?"CASE CLOSED.":"INVESTIGATION OVER.";
-  $("resultMessage").textContent=completed?"All five case files have been processed. Your attention to detail saved the investigation.":"Your investigation ended before all evidence was recovered. Review the scene and try again.";
-  playSound(completed?"win":"wrong");showScreen("result");
+
+/* ==========================================
+   CORRECT ANSWER
+   ========================================== */
+
+function handleCorrectAnswer() {
+  if (phase !== "detect") return;
+
+  phase = "resolved";
+
+  clearInterval(timerInterval);
+  timerInterval = null;
+
+  hideCountdown();
+
+  const bonus =
+    Math.max(0, timeLeft) * 5;
+
+  const earned = 100 + bonus;
+
+  score += earned;
+
+  playSound("correct");
+  updateHUD();
+
+  $("phaseLabel").textContent =
+    "CASE SOLVED";
+
+  $("hintBtn").disabled = true;
+
+  setStatus(
+    "Excellent! You discovered the evidence."
+  );
+
+  setFeedback(
+    `Correct! +${earned} points`
+  );
+
+  showAnswerFeedback(true, () => {
+    showActualAnswer(() => {
+      advanceToNextCase();
+    });
+  });
 }
-function returnToMenu(){
-  clearTimers();gameToken++;phase="menu";$("transitionOverlay").classList.add("hidden");
-  $("bestScore").textContent=bestScore.toLocaleString();showScreen("menu");
+
+/* ==========================================
+   WRONG ANSWER
+   ========================================== */
+
+function handleWrongAnswer(message) {
+  if (phase !== "detect") return;
+
+  phase = "resolved";
+
+  clearInterval(timerInterval);
+  timerInterval = null;
+
+  hideCountdown();
+
+  lives = Math.max(0, lives - 1);
+
+  playSound("wrong");
+  updateHUD();
+
+  $("phaseLabel").textContent =
+    "CASE FAILED";
+
+  $("hintBtn").disabled = true;
+
+  setStatus(message);
+
+  setFeedback(
+    "Wrong answer! One life lost."
+  );
+
+  showAnswerFeedback(false, () => {
+    showActualAnswer(() => {
+      advanceToNextCase();
+    });
+  });
 }
-$("startBtn").addEventListener("click",()=>{playSound();startGame();});
-$("playAgainBtn").addEventListener("click",()=>{playSound();startGame();});
-$("menuBtn").addEventListener("click",returnToMenu);
-$("resultMenuBtn").addEventListener("click",returnToMenu);
+
+/* ==========================================
+   HINT SYSTEM
+   ========================================== */
+
+$("hintBtn").addEventListener(
+  "click",
+  () => {
+    if (phase !== "detect" || hintUsed) {
+      return;
+    }
+
+    hintUsed = true;
+
+    score = Math.max(0, score - 30);
+
+    $("hintBtn").disabled = true;
+
+    playSound("click");
+
+    setFeedback(
+      "Hint activated! Highlighted area. -30 points"
+    );
+
+    updateHUD();
+    drawScene(changedScene);
+  }
+);
+
+/* ==========================================
+   NEXT CASE
+   ========================================== */
+
+function advanceToNextCase() {
+  if (lives <= 0) {
+    finishGame(false);
+    return;
+  }
+
+  if (caseNumber >= TOTAL_CASES) {
+    finishGame(true);
+    return;
+  }
+
+  caseNumber++;
+  startCase();
+}
+
+/* ==========================================
+   GAME RESULT + SAVE HIGH SCORE
+   ========================================== */
+
+function finishGame(completed) {
+  clearGameTimers();
+
+  gameToken++;
+  phase = "result";
+
+  // NEW: Save score under current difficulty.
+  const isNewRecord = saveDifficultyScore(
+    difficulty,
+    score
+  );
+
+  const record = difficultyScores[difficulty];
+
+  $("finalScore").textContent = score;
+
+  $("resultBest").textContent =
+    record.best;
+
+  $("resultDifficulty").textContent =
+    `${difficulty.toUpperCase()} MODE`;
+
+  $("newRecordMessage").textContent =
+    isNewRecord
+      ? "🏆 NEW HIGH SCORE!"
+      : "Keep playing to beat your record!";
+
+  if (completed) {
+    $("resultIcon").textContent = "🏆";
+
+    $("resultTitle").textContent =
+      "Investigation Complete!";
+
+    $("resultMessage").textContent =
+      "You completed all five mysteries. " +
+      "Excellent detective work!";
+
+    playSound("win");
+  } else {
+    $("resultIcon").textContent = "🔍";
+
+    $("resultTitle").textContent =
+      "Investigation Failed";
+
+    $("resultMessage").textContent =
+      "You ran out of lives. Try again!";
+  }
+
+  let rank = "Rookie Detective";
+
+  if (score >= 900) {
+    rank = "Legendary Detective";
+  } else if (score >= 650) {
+    rank = "Master Detective";
+  } else if (score >= 350) {
+    rank = "Senior Investigator";
+  }
+
+  $("detectiveRank").textContent =
+    `Rank: ${rank}`;
+
+  showScreen("result");
+}
+
+/* ==========================================
+   BUTTON EVENTS
+   ========================================== */
+
+$("startBtn").addEventListener(
+  "click",
+  () => {
+    playSound("click");
+    startGame();
+  }
+);
+
+$("playAgainBtn").addEventListener(
+  "click",
+  () => {
+    playSound("click");
+    startGame();
+  }
+);
+
+function returnToMenu() {
+  clearGameTimers();
+
+  gameToken++;
+  phase = "menu";
+
+  $("transitionOverlay").classList.add(
+    "hidden"
+  );
+
+  updateDashboard();
+  showScreen("menu");
+}
+
+$("menuBtn").addEventListener(
+  "click",
+  returnToMenu
+);
+
+$("resultMenuBtn").addEventListener(
+  "click",
+  returnToMenu
+);
+
+/* ==========================================
+   INITIALIZE
+   ========================================== */
+
+selectDifficulty("easy");
 showScreen("menu");
-console.log("Memory Detective 2.0 loaded.");
+
+console.log(
+  "Memory Detective 2D loaded successfully!"
+);
+
+console.log(
+  "Difficulty dashboard enabled."
+);
