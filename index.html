@@ -1,0 +1,167 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0">
+  <title>Memory Detective | Mystery Game</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <div class="game-shell">
+
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-icon">🔎</span>
+        <div>
+          <h1>MEMORY DETECTIVE</h1>
+          <p>THE CHANGING CRIME SCENE</p>
+        </div>
+      </div>
+      <button id="soundBtn" class="icon-btn">
+        🔊 Sound On
+      </button>
+    </header>
+
+    <main>
+      <!-- MAIN MENU -->
+      <section id="menuScreen" class="screen active">
+        <div class="menu-content">
+          <div class="detective-icon">🕵️</div>
+          <p class="eyebrow">TOP SECRET INVESTIGATION</p>
+          <h2>Can You Spot the Difference?</h2>
+          <p class="description">
+            Memorize the crime scene. Watch carefully.
+            Find what changed before time runs out!
+          </p>
+
+          <h3>SELECT DIFFICULTY</h3>
+          <div class="difficulty-buttons">
+            <button class="difficulty active"
+                    data-level="easy">Easy</button>
+            <button class="difficulty"
+                    data-level="medium">Medium</button>
+            <button class="difficulty"
+                    data-level="hard">Hard</button>
+          </div>
+
+          <div id="difficultyInfo" class="difficulty-info">
+            5 Objects • 20s Memory • 30s Investigation
+          </div>
+
+          <button id="startBtn" class="primary-btn">
+            ▶ START INVESTIGATION
+          </button>
+
+          <div class="best-score">
+            🏆 Best Score: <span id="bestScore">0</span>
+          </div>
+
+          <div class="instructions">
+            <h3>HOW TO PLAY</h3>
+            <p>1. Memorize the objects in the room.</p>
+            <p>2. Wait for the scene to change.</p>
+            <p>3. Click the object that changed.</p>
+            <p>4. Solve five mysteries to win.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- GAME SCREEN -->
+      <section id="gameScreen" class="screen">
+        <div class="hud">
+          <div class="stat">
+            <span>CASE</span>
+            <strong id="caseNumber">1 / 5</strong>
+          </div>
+          <div class="stat">
+            <span>SCORE</span>
+            <strong id="score">0</strong>
+          </div>
+          <div class="stat">
+            <span>TIME</span>
+            <strong id="timer">20</strong>
+          </div>
+          <div class="stat">
+            <span>LIVES</span>
+            <strong id="lives">❤️❤️❤️</strong>
+          </div>
+        </div>
+
+        <div class="mission-panel">
+          <div>
+            <span id="phaseLabel" class="phase-label">
+              MEMORY PHASE
+            </span>
+            <h2 id="roomTitle">Detective Office</h2>
+            <p id="statusText">
+              Memorize every object's position.
+            </p>
+          </div>
+          <button id="hintBtn" class="secondary-btn"
+                  disabled>
+            💡 Hint
+          </button>
+        </div>
+
+        <div class="canvas-container">
+          <canvas id="gameCanvas"
+                  width="900" height="520"></canvas>
+
+          <div id="transitionOverlay" class="overlay hidden">
+            <div class="overlay-content">
+              <div class="transition-icon">👁️</div>
+              <h2>SCENE CHANGING...</h2>
+              <p>Something suspicious is happening!</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="game-footer">
+          <p id="feedback">
+            Study the scene carefully, Detective.
+          </p>
+          <button id="menuBtn" class="secondary-btn">
+            Exit to Menu
+          </button>
+        </div>
+      </section>
+
+      <!-- RESULTS SCREEN -->
+      <section id="resultScreen" class="screen">
+        <div class="result-content">
+          <div id="resultIcon" class="result-icon">🏆</div>
+          <h2 id="resultTitle">Investigation Complete!</h2>
+          <p id="resultMessage">
+            Excellent detective work!
+          </p>
+
+          <div class="final-score">
+            <span>FINAL SCORE</span>
+            <strong id="finalScore">0</strong>
+          </div>
+
+          <p id="detectiveRank">Rank: Rookie Detective</p>
+
+          <div class="result-buttons">
+            <button id="playAgainBtn" class="primary-btn">
+              🔄 PLAY AGAIN
+            </button>
+            <button id="resultMenuBtn"
+                    class="secondary-btn">
+              MAIN MENU
+            </button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      MEMORY DETECTIVE • 2D MYSTERY CHALLENGE
+    </footer>
+  </div>
+</body>
+</html>
+
