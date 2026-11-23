@@ -30,21 +30,22 @@ const difficultyButtons =
 
 // 2. GAME SETTINGS
 
+
 const SETTINGS = {
   easy: {
     objects: 5,
-    memory: 20,
-    detection: 30
+    memory: 25,
+    detection: 35
   },
   medium: {
     objects: 8,
-    memory: 15,
-    detection: 25
+    memory: 20,
+    detection: 30
   },
   hard: {
     objects: 12,
-    memory: 10,
-    detection: 20
+    memory: 15,
+    detection: 25
   }
 };
 
